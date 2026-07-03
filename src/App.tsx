@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
 import {
   type Mapping,
   type NetStatus,
@@ -34,15 +35,31 @@ function App() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [autostart, setAutostart] = useState(false);
 
   useEffect(() => {
     getStatus().then(setStatus).catch(() => {});
     getMappings().then(setMappings).catch(() => {});
+    isEnabled().then(setAutostart).catch(() => {});
     const unlisten = onNetStatus(setStatus);
     return () => {
       unlisten.then((fn) => fn());
     };
   }, []);
+
+  async function toggleAutostart() {
+    try {
+      if (autostart) {
+        await disable();
+        setAutostart(false);
+      } else {
+        await enable();
+        setAutostart(true);
+      }
+    } catch (err) {
+      setError(String(err));
+    }
+  }
 
   async function handleRefresh() {
     setRefreshing(true);
@@ -98,7 +115,7 @@ function App() {
   const kind = status ? labelKind(status) : null;
 
   return (
-    <div className="popover" data-tauri-drag-region>
+    <div className="popover">
       <header className="status-card">
         <div className="status-main">
           <span className={`badge ${kind?.cls ?? "badge-none"}`}>
@@ -201,6 +218,17 @@ function App() {
           ))}
         </ul>
       </section>
+
+      <footer className="footer">
+        <label className="autostart">
+          <input
+            type="checkbox"
+            checked={autostart}
+            onChange={toggleAutostart}
+          />
+          로그인 시 자동 실행
+        </label>
+      </footer>
     </div>
   );
 }

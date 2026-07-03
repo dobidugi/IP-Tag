@@ -38,6 +38,13 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
+            // 로그인 시 자동 실행 (LaunchAgent). 실제 on/off는 프론트에서 토글.
+            #[cfg(desktop)]
+            app.handle().plugin(tauri_plugin_autostart::init(
+                tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+                None,
+            ))?;
+
             tray::setup_tray(app)?;
 
             // 팝오버는 포커스를 잃으면 자동으로 닫는다.

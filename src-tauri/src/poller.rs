@@ -29,21 +29,27 @@ pub fn spawn<R: Runtime>(app: tauri::AppHandle<R>) {
 /// 1회 조회: 공인 IP + SSID를 읽고, 매핑으로 별칭을 찾아 라벨을 결정한 뒤
 /// 상태 저장 → (변경 시) 트레이 타이틀 갱신 → 프론트로 emit.
 pub async fn poll_once<R: Runtime>(app: &tauri::AppHandle<R>) {
-    let ip = net::fetch_public_ip().await;
+    let prev = app.state::<AppState>().status.lock().unwrap().clone();
+
+    let fetched = net::fetch_public_ip().await;
     // SSID 조회는 외부 프로세스를 띄우므로 블로킹 스레드에서 실행한다.
     let ssid = tokio::task::spawn_blocking(net::current_ssid)
         .await
         .ok()
         .flatten();
 
+    // 이번 조회 성공 여부. 실패해도 직전 IP를 유지해 라벨 깜빡임을 막는다.
+    let ok = fetched.is_some();
+    let ip = fetched.or(prev.ip);
+
     // 별칭: IP가 매핑 테이블에 정확히 매칭되면 사용 (없으면 None)
     let alias = ip
         .as_deref()
         .and_then(|ip| mappings::alias_for_ip(app, ip));
 
-    let ok = ip.is_some();
     let label = resolve_label(&alias, &ssid, &ip);
-    let updated_at = now_millis();
+    // 갱신 시각은 성공했을 때만 갱신한다.
+    let updated_at = if ok { now_millis() } else { prev.updated_at };
 
     let status = NetStatus {
         ip,
