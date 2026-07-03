@@ -37,24 +37,31 @@ fn is_plausible_ip(s: &str) -> bool {
 }
 
 /// 현재 접속 중인 WiFi의 SSID(이름)를 반환한다.
-/// macOS에서는 `networksetup`으로 조회하며, 위치 권한 등으로 못 읽으면 None.
+///
+/// macOS 14+에서는 `networksetup -getairportnetwork`가 접속 중에도
+/// "You are not associated..."를 반환하는 경우가 많다. 반면
+/// `ipconfig getsummary <iface>`는 위치 권한 없이도 SSID를 노출한다.
 #[cfg(target_os = "macos")]
 pub fn current_ssid() -> Option<String> {
     use std::process::Command;
 
     let iface = wifi_interface().unwrap_or_else(|| "en0".to_string());
-    let out = Command::new("/usr/sbin/networksetup")
-        .args(["-getairportnetwork", &iface])
+    let out = Command::new("/usr/sbin/ipconfig")
+        .args(["getsummary", &iface])
         .output()
         .ok()?;
 
     let text = String::from_utf8_lossy(&out.stdout);
-    // 정상 출력 예: "Current Wi-Fi Network: MyWiFi"
-    // 미접속/권한 없음: "You are not associated with an AirPort network."
-    text.lines()
-        .find_map(|l| l.strip_prefix("Current Wi-Fi Network: "))
-        .map(|s| s.trim().to_string())
-        .filter(|s| !s.is_empty())
+    // 출력 예: "  SSID : 5G_LGWiFi_A52D" (키가 정확히 SSID인 줄만. BSSID 제외)
+    text.lines().find_map(|line| {
+        let (key, value) = line.split_once(':')?;
+        if key.trim() == "SSID" {
+            let v = value.trim();
+            (!v.is_empty()).then(|| v.to_string())
+        } else {
+            None
+        }
+    })
 }
 
 /// Wi-Fi 하드웨어 포트에 매핑된 디바이스명(예: en0)을 찾는다.
