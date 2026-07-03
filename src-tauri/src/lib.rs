@@ -1,12 +1,30 @@
+mod net;
+mod poller;
+mod state;
 mod tray;
 
+use state::{AppState, NetStatus};
 use tauri::{Manager, WindowEvent};
+
+/// 현재 네트워크 상태를 반환한다 (프론트 초기 로드용).
+#[tauri::command]
+fn get_status(state: tauri::State<AppState>) -> NetStatus {
+    state.status.lock().unwrap().clone()
+}
+
+/// 즉시 재조회를 트리거한다.
+#[tauri::command]
+fn refresh_now(state: tauri::State<AppState>) {
+    state.refresh.notify_one();
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::new().build())
+        .manage(AppState::new())
+        .invoke_handler(tauri::generate_handler![get_status, refresh_now])
         .setup(|app| {
             // macOS: dock 아이콘을 숨기고 메뉴바 상주 앱으로 동작시킨다.
             #[cfg(target_os = "macos")]
@@ -23,6 +41,9 @@ pub fn run() {
                     }
                 });
             }
+
+            // 백그라운드 IP/SSID 폴링 시작
+            poller::spawn(app.handle().clone());
 
             Ok(())
         })

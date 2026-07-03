@@ -4,6 +4,8 @@ use tauri::{
     App, Manager, PhysicalPosition, Runtime,
 };
 
+use crate::state::AppState;
+
 /// 메뉴바(트레이) 아이콘을 등록한다.
 /// - 좌클릭: 팝오버 윈도우 토글
 /// - 우클릭: 메뉴(새로고침 / 종료)
@@ -24,7 +26,7 @@ pub fn setup_tray<R: Runtime>(app: &App<R>) -> tauri::Result<()> {
         .on_menu_event(|app, event| match event.id.as_ref() {
             "quit" => app.exit(0),
             "refresh" => {
-                // 3단계에서 즉시 폴링 트리거를 연결한다.
+                app.state::<AppState>().refresh.notify_one();
             }
             _ => {}
         })
