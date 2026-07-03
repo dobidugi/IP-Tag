@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Runtime};
+use tauri::{AppHandle, Manager, Runtime};
 use tauri_plugin_store::StoreExt;
+
+use crate::state::AppState;
 
 const STORE_FILE: &str = "mappings.json";
 const KEY: &str = "mappings";
@@ -38,6 +40,11 @@ pub fn alias_for_ip<R: Runtime>(app: &AppHandle<R>, ip: &str) -> Option<String> 
     load(app).into_iter().find(|m| m.ip == ip).map(|m| m.alias)
 }
 
+/// 매핑이 바뀌면 라벨이 즉시 갱신되도록 재조회를 깨운다.
+fn trigger_refresh<R: Runtime>(app: &AppHandle<R>) {
+    app.state::<AppState>().refresh.notify_one();
+}
+
 /// 충돌 가능성이 낮은 간단한 id (nanos 기반).
 fn new_id() -> String {
     let nanos = std::time::SystemTime::now()
@@ -70,6 +77,7 @@ pub fn add_mapping<R: Runtime>(
         alias,
     });
     persist(&app, &list)?;
+    trigger_refresh(&app);
     Ok(list)
 }
 
@@ -94,6 +102,7 @@ pub fn update_mapping<R: Runtime>(
         None => return Err("해당 매핑을 찾을 수 없습니다.".into()),
     }
     persist(&app, &list)?;
+    trigger_refresh(&app);
     Ok(list)
 }
 
@@ -102,5 +111,6 @@ pub fn delete_mapping<R: Runtime>(app: AppHandle<R>, id: String) -> Result<Vec<M
     let mut list = load(&app);
     list.retain(|m| m.id != id);
     persist(&app, &list)?;
+    trigger_refresh(&app);
     Ok(list)
 }

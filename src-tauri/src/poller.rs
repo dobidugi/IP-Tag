@@ -2,6 +2,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use tauri::{Emitter, Manager, Runtime};
 
+use crate::mappings;
 use crate::net;
 use crate::state::{AppState, NetStatus};
 
@@ -35,8 +36,10 @@ pub async fn poll_once<R: Runtime>(app: &tauri::AppHandle<R>) {
         .ok()
         .flatten();
 
-    // 별칭: IP가 매핑 테이블에 있으면 사용. (5단계에서 매핑 조회를 연결)
-    let alias: Option<String> = None;
+    // 별칭: IP가 매핑 테이블에 정확히 매칭되면 사용 (없으면 None)
+    let alias = ip
+        .as_deref()
+        .and_then(|ip| mappings::alias_for_ip(app, ip));
 
     let ok = ip.is_some();
     let label = resolve_label(&alias, &ssid, &ip);
