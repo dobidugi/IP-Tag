@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "tauri-app",
+  "productName": "IP Tag",
   "version": "0.1.0",
-  "identifier": "com.ytlee.tauri-app",
+  "identifier": "com.ytlee.ip-tag",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -12,11 +12,20 @@
   "app": {
     "windows": [
       {
-        "title": "tauri-app",
-        "width": 800,
-        "height": 600
+        "label": "main",
+        "title": "IP Tag",
+        "width": 360,
+        "height": 520,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "visible": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "fullscreen": false
       }
     ],
+    "macOSPrivateApi": true,
     "security": {
       "csp": null
     }
