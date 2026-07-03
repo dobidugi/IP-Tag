@@ -1,3 +1,4 @@
+mod mappings;
 mod net;
 mod poller;
 mod state;
@@ -24,7 +25,14 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .manage(AppState::new())
-        .invoke_handler(tauri::generate_handler![get_status, refresh_now])
+        .invoke_handler(tauri::generate_handler![
+            get_status,
+            refresh_now,
+            mappings::get_mappings,
+            mappings::add_mapping,
+            mappings::update_mapping,
+            mappings::delete_mapping
+        ])
         .setup(|app| {
             // macOS: dock 아이콘을 숨기고 메뉴바 상주 앱으로 동작시킨다.
             #[cfg(target_os = "macos")]
