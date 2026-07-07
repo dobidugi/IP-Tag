@@ -1,9 +1,15 @@
 # IP Tag
 
+**한국어** · [English](README.en.md) · [日本語](README.ja.md)
+
 > 지금 내 공인 IP가 **어디**인지 메뉴바에서 한눈에.
 
 macOS 메뉴바에 상주하면서 현재 공인 IP와 WiFi를 주기적으로 확인하고,
 IP에 직접 붙여둔 **별칭**으로 "여기가 어디인지"를 바로 알려주는 작은 트레이 앱입니다.
+
+<p align="center">
+  <img src="resources/image.png" alt="IP Tag 스크린샷" width="320">
+</p>
 
 ---
 
