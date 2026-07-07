@@ -64,6 +64,25 @@ decisions happen in the Rust backend.
 
 ---
 
+## Prerequisites
+
+- **Node.js** (18+)
+- **Xcode Command Line Tools** — `xcode-select --install`
+- **Rust toolchain** — if not installed:
+
+  ```bash
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+  ```
+
+> **Note for zsh users:** rustup writes its PATH setup to `~/.profile`, which zsh does not read.
+> If `cargo --version` fails in a new terminal, add this line to `~/.zshrc`:
+>
+> ```bash
+> echo '. "$HOME/.cargo/env"' >> ~/.zshrc && source ~/.zshrc
+> ```
+>
+> (Skipping this causes `cargo metadata ... No such file or directory` when running `npm run tauri dev`.)
+
 ## Development
 
 ```bash
@@ -76,8 +95,6 @@ npm run tauri dev
 # release build (.app / .dmg)
 npm run tauri build
 ```
-
-> Requires the Rust toolchain and Xcode Command Line Tools.
 
 ---
 
