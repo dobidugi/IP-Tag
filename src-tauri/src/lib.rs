@@ -19,6 +19,12 @@ fn refresh_now(state: tauri::State<AppState>) {
     state.refresh.notify_one();
 }
 
+/// 프론트에서 선택한 언어를 트레이 메뉴에 반영한다.
+#[tauri::command]
+fn set_language(app: tauri::AppHandle, lang: String) {
+    tray::apply_language(&app, &lang);
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -28,6 +34,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_status,
             refresh_now,
+            set_language,
             mappings::get_mappings,
             mappings::add_mapping,
             mappings::update_mapping,

@@ -1,19 +1,46 @@
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    App, Manager, PhysicalPosition, Runtime,
+    App, AppHandle, Manager, PhysicalPosition, Runtime,
 };
 
 use crate::state::AppState;
+
+/// 언어 코드별 트레이 메뉴 라벨 (새로고침, 종료).
+fn menu_labels(lang: &str) -> (&'static str, &'static str) {
+    match lang {
+        "en" => ("Refresh", "Quit"),
+        "ja" => ("更新", "終了"),
+        _ => ("새로고침", "종료"),
+    }
+}
+
+/// 선택한 언어로 트레이 메뉴를 만든다. (라벨은 언어별로 번역)
+fn build_menu<M: Manager<R>, R: Runtime>(app: &M, lang: &str) -> tauri::Result<Menu<R>> {
+    let (refresh_label, quit_label) = menu_labels(lang);
+    let refresh = MenuItem::with_id(app, "refresh", refresh_label, true, None::<&str>)?;
+    let sep = PredefinedMenuItem::separator(app)?;
+    let quit = MenuItem::with_id(app, "quit", quit_label, true, None::<&str>)?;
+    Menu::with_items(app, &[&refresh, &sep, &quit])
+}
+
+/// 프론트에서 선택한 언어를 트레이 메뉴에 반영한다.
+/// (메뉴 이벤트 핸들러는 트레이에 붙어 있으므로 메뉴를 교체해도 유지된다.)
+pub fn apply_language<R: Runtime>(app: &AppHandle<R>, lang: &str) {
+    let Some(tray) = app.tray_by_id("main-tray") else {
+        return;
+    };
+    if let Ok(menu) = build_menu(app, lang) {
+        let _ = tray.set_menu(Some(menu));
+    }
+}
 
 /// 메뉴바(트레이) 아이콘을 등록한다.
 /// - 좌클릭: 팝오버 윈도우 토글
 /// - 우클릭: 메뉴(새로고침 / 종료)
 pub fn setup_tray<R: Runtime>(app: &App<R>) -> tauri::Result<()> {
-    let refresh = MenuItem::with_id(app, "refresh", "새로고침", true, None::<&str>)?;
-    let sep = PredefinedMenuItem::separator(app)?;
-    let quit = MenuItem::with_id(app, "quit", "종료", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&refresh, &sep, &quit])?;
+    // 시작 시엔 기본(한국어) 라벨로 만들고, 프론트가 뜨면 저장된 언어로 교정한다.
+    let menu = build_menu(app, "ko")?;
 
     TrayIconBuilder::with_id("main-tray")
         .icon(app.default_window_icon().unwrap().clone())

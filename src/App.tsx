@@ -11,23 +11,27 @@ import {
   refreshNow,
   updateMapping,
 } from "./api";
+import { LANGUAGES, useI18n } from "./i18n";
 import "./App.css";
 
+type LabelKind = "alias" | "wifi" | "ip" | "none";
+
 /** 라벨이 어디서 왔는지(별칭/WiFi/IP) 배지로 보여주기 위한 판별 */
-function labelKind(s: NetStatus): { text: string; cls: string } {
-  if (s.alias) return { text: "별칭", cls: "badge-alias" };
-  if (s.ssid && s.label === s.ssid) return { text: "WiFi", cls: "badge-wifi" };
-  if (s.ip && s.label === s.ip) return { text: "IP", cls: "badge-ip" };
-  return { text: "—", cls: "badge-none" };
+function labelKind(s: NetStatus): { kind: LabelKind; cls: string } {
+  if (s.alias) return { kind: "alias", cls: "badge-alias" };
+  if (s.ssid && s.label === s.ssid) return { kind: "wifi", cls: "badge-wifi" };
+  if (s.ip && s.label === s.ip) return { kind: "ip", cls: "badge-ip" };
+  return { kind: "none", cls: "badge-none" };
 }
 
-function formatTime(ms: number): string {
+function formatTime(ms: number, locale: string): string {
   if (!ms) return "—";
   const d = new Date(ms);
-  return d.toLocaleTimeString("ko-KR", { hour12: false });
+  return d.toLocaleTimeString(locale, { hour12: false });
 }
 
 function App() {
+  const { lang, setLang, t } = useI18n();
   const [status, setStatus] = useState<NetStatus | null>(null);
   const [mappings, setMappings] = useState<Mapping[]>([]);
   const [ip, setIp] = useState("");
@@ -113,13 +117,22 @@ function App() {
   }
 
   const kind = status ? labelKind(status) : null;
+  const badgeText =
+    kind?.kind === "alias"
+      ? t("badgeAlias")
+      : kind?.kind === "wifi"
+        ? "WiFi"
+        : kind?.kind === "ip"
+          ? "IP"
+          : "—";
+  const locale = lang === "ko" ? "ko-KR" : lang === "ja" ? "ja-JP" : "en-US";
 
   return (
     <div className="popover">
       <header className="status-card">
         <div className="status-main">
           <span className={`badge ${kind?.cls ?? "badge-none"}`}>
-            {kind?.text ?? "—"}
+            {badgeText}
           </span>
           <span className="status-label" title={status?.label}>
             {status?.label ?? "…"}
@@ -128,16 +141,16 @@ function App() {
         </div>
         <dl className="status-meta">
           <div>
-            <dt>공인 IP</dt>
-            <dd>{status?.ip ?? "조회 실패"}</dd>
+            <dt>{t("metaPublicIp")}</dt>
+            <dd>{status?.ip ?? t("lookupFailed")}</dd>
           </div>
           <div>
-            <dt>WiFi</dt>
+            <dt>{t("metaWifi")}</dt>
             <dd>{status?.ssid ?? "—"}</dd>
           </div>
           <div>
-            <dt>갱신</dt>
-            <dd>{formatTime(status?.updatedAt ?? 0)}</dd>
+            <dt>{t("metaUpdated")}</dt>
+            <dd>{formatTime(status?.updatedAt ?? 0, locale)}</dd>
           </div>
         </dl>
         <button
@@ -145,12 +158,12 @@ function App() {
           onClick={handleRefresh}
           disabled={refreshing}
         >
-          {refreshing ? "조회 중…" : "새로고침"}
+          {refreshing ? t("refreshing") : t("refresh")}
         </button>
       </header>
 
       <section className="mappings">
-        <h2>별칭 매핑</h2>
+        <h2>{t("mappingsTitle")}</h2>
 
         <form className="mapping-form" onSubmit={handleSubmit}>
           <div className="ip-row">
@@ -164,23 +177,23 @@ function App() {
               type="button"
               className="mini-btn"
               onClick={useCurrentIp}
-              title="현재 공인 IP 채우기"
+              title={t("useCurrentIpTitle")}
             >
-              현재 IP
+              {t("useCurrentIp")}
             </button>
           </div>
           <input
-            placeholder="별칭 (예: 본사 VPN)"
+            placeholder={t("aliasPlaceholder")}
             value={alias}
             onChange={(e) => setAlias(e.target.value)}
           />
           <div className="form-actions">
             <button type="submit" className="primary">
-              {editingId ? "수정" : "추가"}
+              {editingId ? t("save") : t("add")}
             </button>
             {editingId && (
               <button type="button" onClick={resetForm}>
-                취소
+                {t("cancel")}
               </button>
             )}
           </div>
@@ -190,7 +203,7 @@ function App() {
 
         <ul className="mapping-list">
           {mappings.length === 0 && (
-            <li className="empty">등록된 매핑이 없습니다.</li>
+            <li className="empty">{t("noMappings")}</li>
           )}
           {mappings.map((m) => (
             <li
@@ -205,13 +218,13 @@ function App() {
               </div>
               <div className="mapping-actions">
                 <button className="mini-btn" onClick={() => startEdit(m)}>
-                  수정
+                  {t("edit")}
                 </button>
                 <button
                   className="mini-btn danger"
                   onClick={() => handleDelete(m.id)}
                 >
-                  삭제
+                  {t("delete")}
                 </button>
               </div>
             </li>
@@ -226,7 +239,20 @@ function App() {
             checked={autostart}
             onChange={toggleAutostart}
           />
-          로그인 시 자동 실행
+          {t("autostart")}
+        </label>
+        <label className="lang-select">
+          <span>{t("language")}</span>
+          <select
+            value={lang}
+            onChange={(e) => setLang(e.target.value as (typeof LANGUAGES)[number]["code"])}
+          >
+            {LANGUAGES.map((l) => (
+              <option key={l.code} value={l.code}>
+                {l.label}
+              </option>
+            ))}
+          </select>
         </label>
       </footer>
     </div>
